@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terra3D - 3D Real World Explorer & City Walk</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Manjari:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- MapLibre GL 3D Terrain CSS -->
+    <link rel="stylesheet" href="maplibre-gl.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Local Core 3D Engines & Loaders -->
+    <script src="three.min.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script src="GLTFLoader.js"></script>
+    <script src="OBJLoader.js"></script>
+    <script src="maplibre-gl.js"></script>
+</head>
+<body>
+    <div id="app-container">
+        <!-- 3D Viewport Containers -->
+        <div id="globe-view" class="viewport active"></div>
+        <div id="maplibre-view" class="viewport"></div>
+        <div id="city-view" class="viewport"></div>
+
+        <!-- Top Navigation Bar -->
+        <header class="top-nav">
+            <div class="brand">
+                <div class="logo-orb"></div>
+                <div class="brand-text">
+                    <h1>Terra<span>3D</span></h1>
+                    <span class="sub">3D ലോക മാപ്പ് & സിറ്റി വാക്ക്</span>
+                </div>
+            </div>
+
+            <!-- Mode Switcher (All 3 Dimensions) -->
+            <div class="mode-switch-container">
+                <button id="btn-mode-globe" class="mode-btn active" title="3D Cinematic Space Globe">
+                    <span class="icon">🌐</span>
+                    <span class="label">3D ഗ്ലോബ്</span>
+                </button>
+                <button id="btn-mode-walk" class="mode-btn" title="True 3D Real World GIS Streaming">
+                    <span class="icon">🏔️</span>
+                    <span class="label">സാറ്റലൈറ്റ് 3D വാക്ക്</span>
+                </button>
+                <button id="btn-mode-city" class="mode-btn" title="BlenderGIS & MapsModels 3D Mesh Walk">
+                    <span class="icon">🏙️</span>
+                    <span class="label">3D സിറ്റി & ടെറൈൻ മെഷ്</span>
+                </button>
+            </div>
+
+            <!-- Top Actions -->
+            <div class="header-actions">
+                <button id="btn-audio" class="action-btn" title="Ambient Sound">
+                    <span class="icon">🔊</span>
+                </button>
+                <button id="btn-fullscreen" class="action-btn" title="Toggle Fullscreen">
+                    <span class="icon">⛶</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Quick Navigation Bar -->
+        <div class="quick-nav-bar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="location-search" placeholder="സ്ഥലങ്ങൾ തിരയുക (Venice, Everest, New York, Munnar)..." autocomplete="off">
+                <div id="search-results" class="search-dropdown hidden"></div>
+            </div>
+
+            <!-- 3D Mesh Models / City Walk Presets -->
+            <div class="bookmarks-scroll">
+                <button class="pill-btn highlight" data-dest="venice">🇮🇹 വെനീസ് 3D സിറ്റി (Canals & Bridges)</button>
+                <button class="pill-btn highlight" data-dest="newyork">🇺🇸 ന്യൂയോർക്ക് മാൻഹാട്ടൻ (3D Skyscrapers)</button>
+                <button class="pill-btn highlight" data-dest="everest">🏔️ ഹിമാലയം & എവറസ്റ്റ് (3D Real Mesh)</button>
+                <button class="pill-btn" data-dest="munnar">🌴 മൂന്നാർ ടീ ഹിൽസ് (Kerala 3D)</button>
+                <button class="pill-btn" data-dest="grandcanyon">🏞️ ഗ്രാൻഡ് കാന്യൺ (3D Gorge)</button>
+                <button class="pill-btn" data-dest="alps">🗻 സ്വിസ് ആൽപ്സ് (Matterhorn)</button>
+                <button class="pill-btn" data-dest="dubai">🏙️ ദുബായ് മറീന</button>
+            </div>
+        </div>
+
+        <!-- 3D Ground Walk Overlay & HUD -->
+        <div id="walk-overlay" class="walk-overlay hidden">
+            <div class="walk-badge">
+                <span class="pulse-dot"></span>
+                <span id="walk-badge-text">🎮 3D ഫസ്റ്റ്-പേഴ്സൺ വാക്ക് മോഡ്</span>
+            </div>
+            
+            <div class="walk-instructions">
+                <div class="key-guide">
+                    <span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span> : <strong>തെരുവിലൂടെ നടക്കുക (Walk)</strong>
+                </div>
+                <div class="key-guide">
+                    <span class="key">Shift</span> : <strong>ഓടുക (Sprint)</strong> | <span class="key">Space</span> : <strong>ചാടുക (Jump)</strong>
+                </div>
+                <div class="key-guide">
+                    <span>മൗസ് റൈറ്റ് ക്ലിക്ക് & ഡ്രാഗ് : <strong>360° ചുറ്റും നോക്കുക</strong></span>
+                </div>
+            </div>
+
+            <!-- Onscreen Virtual D-Pad -->
+            <div class="onscreen-dpad">
+                <button class="dpad-btn up" id="dpad-up" title="Walk Forward">▲</button>
+                <div class="dpad-mid">
+                    <button class="dpad-btn left" id="dpad-left" title="Walk Left">◀</button>
+                    <button class="dpad-btn center" id="dpad-center" title="Center View">👁</button>
+                    <button class="dpad-btn right" id="dpad-right" title="Walk Right">▶</button>
+                </div>
+                <button class="dpad-btn down" id="dpad-down" title="Walk Backward">▼</button>
+                
+                <div class="dpad-alt">
+                    <button class="dpad-btn sm" id="dpad-elevate-up" title="Fly Higher">▲ ഉയരം</button>
+                    <button class="dpad-btn sm" id="dpad-elevate-down" title="Lower to Ground">▼ താഴേക്ക്</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Left Control Panel -->
+        <aside class="floating-panel left-panel">
+            <div class="panel-header">
+                <h3>കൺട്രോളുകൾ</h3>
+                <button id="toggle-panel-btn" class="toggle-icon-btn">✕</button>
+            </div>
+            
+            <!-- Globe Mode Controls -->
+            <div class="mode-globe-controls">
+                <div class="panel-section">
+                    <h4>ഗ്ലോബ് ലെയറുകൾ</h4>
+                    <label class="toggle-control">
+                        <span>മേഘങ്ങൾ (Clouds Layer)</span>
+                        <input type="checkbox" id="layer-clouds" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <label class="toggle-control">
+                        <span>നൈറ്റ് സിറ്റി ലൈറ്റുകൾ</span>
+                        <input type="checkbox" id="layer-night">
+                        <span class="slider"></span>
+                    </label>
+                    <label class="toggle-control">
+                        <span>ഫ്ലൈറ്റ് റൂട്ടുകൾ (Flight Arcs)</span>
+                        <input type="checkbox" id="layer-arcs" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <label class="toggle-control">
+                        <span>3D മാർക്കറുകൾ</span>
+                        <input type="checkbox" id="layer-markers" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="panel-section">
+                    <h4>റൊട്ടേഷൻ</h4>
+                    <label class="toggle-control">
+                        <span>ഓട്ടോ റൊട്ടേഷൻ</span>
+                        <input type="checkbox" id="toggle-autorotate" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="slider-control">
+                        <div class="slider-labels">
+                            <span>സ്പീഡ്</span>
+                            <span id="speed-val">0.6x</span>
+                        </div>
+                        <input type="range" id="rotate-speed" min="0.1" max="2.0" step="0.1" value="0.6">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Walk Mode Controls -->
+            <div class="mode-walk-controls hidden">
+                <div class="panel-section">
+                    <h4>3D എലവേഷൻ (Terrain)</h4>
+                    <div class="slider-control">
+                        <div class="slider-labels">
+                            <span>ഉയരത്തിന്റെ തീവ്രത (Exaggeration)</span>
+                            <span id="terrain-exag-val">1.6x</span>
+                        </div>
+                        <input type="range" id="terrain-exaggeration" min="1.0" max="2.5" step="0.1" value="1.6">
+                    </div>
+                </div>
+            </div>
+
+            <!-- City Mesh Mode Controls -->
+            <div class="mode-city-controls hidden">
+                <div class="panel-section">
+                    <h4>3D സിറ്റി & മെഷ് സെറ്റിംഗ്സ്</h4>
+                    <label class="toggle-control">
+                        <span>3D കെട്ടിടങ്ങൾ (Extruded Buildings)</span>
+                        <input type="checkbox" id="layer-city-buildings" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <label class="toggle-control">
+                        <span>സ്ട്രീറ്റ് ലൈറ്റുകൾ & നിഴലുകൾ</span>
+                        <input type="checkbox" id="layer-city-lights" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <label class="toggle-control">
+                        <span>ജലാശയങ്ങൾ / കനാലുകൾ (Water)</span>
+                        <input type="checkbox" id="layer-city-water" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="slider-control">
+                        <div class="slider-labels">
+                            <span>നടത്തത്തിന്റെ വേഗത (Walk Speed)</span>
+                            <span id="walk-speed-val">1.0x</span>
+                        </div>
+                        <input type="range" id="walk-speed-slider" min="0.5" max="3.0" step="0.5" value="1.0">
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Toggle Panel Trigger -->
+        <button id="btn-reopen-panel" class="floating-trigger hidden">
+            ⚙️ കൺട്രോളുകൾ
+        </button>
+
+        <!-- Bottom HUD -->
+        <div class="bottom-hud">
+            <div class="hud-item">
+                <span class="label">LOCATION:</span>
+                <span id="hud-location-name" class="val">Venice, Italy</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">LAT:</span>
+                <span id="hud-lat" class="val">45.44° N</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">LNG:</span>
+                <span id="hud-lng" class="val">12.31° E</span>
+            </div>
+            <div class="hud-item active-mode-hud">
+                <span id="hud-mode-badge" class="mode-badge">🌐 3D Globe</span>
+            </div>
+        </div>
+
+        <!-- Info Card Popup -->
+        <div id="info-card" class="info-card hidden">
+            <button id="btn-close-info" class="close-card-btn">✕</button>
+            <div class="info-card-header">
+                <div class="badge" id="info-type">3D Model</div>
+                <h3 id="info-title">Venice, Italy</h3>
+                <p id="info-malayalam" class="ml-text">വെനീസ് 3D സിറ്റി</p>
+            </div>
+            <div class="info-card-body">
+                <p id="info-desc">ഗൂഗിൾ മാപ്പിൽ നിന്നുള്ള യഥാർത്ഥ 3D ഫോട്ടോറിയലിസ്റ്റിക് കെട്ടിടങ്ങളും കനാലുകളും പാലങ്ങളും.</p>
+                <div class="info-stats">
+                    <div class="stat">
+                        <span class="stat-label">മേഖല</span>
+                        <span id="info-elevation" class="stat-value">Historic City</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">രാജ്യം</span>
+                        <span id="info-location" class="stat-value">Veneto, Italy</span>
+                    </div>
+                </div>
+                <button id="btn-flyto-detail" class="flyto-action-btn">
+                    🏙️ ഈ 3D നഗരത്തിനുള്ളിലേക്ക് ഇറങ്ങി നടക്കുക
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loader" class="loader-overlay">
+            <div class="loader-content">
+                <div class="spinning-globe"></div>
+                <h2>Terra3D ഒരുങ്ങുന്നു...</h2>
+                <p id="loader-status">3D വേൾഡ് മാപ്പും മോഡലുകളും ലോഡ് ചെയ്യുന്നു...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript App -->
+    <script src="app.js"></script>
+</body>
+</html>
